@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# takes the name of a repository which you have a git remote for.
+
+# changes the remote to by an ssh:// URL if it is a https:// URL, or
+# vice-versa.
+
+set -e
+set -x
+
+WHAT="$1"
+
+test -z "$WHAT" && {
+    echo "need a remote (e.g. bobremote)"
+    exit 1
+}
+
+CURRENT_REMOTE=`git remote -v | grep '(fetch)$' | grep "^$WHAT\s"`
+
+if [ -z "$CURRENT_REMOTE" ]; then
+   echo >&2 "No such remote"
+   exit 1
+fi
+
+echo "CURRENT_REMOTE=$CURRENT_REMOTE"
+
+CURRENT_URL=$(echo "$CURRENT_REMOTE" | perl -pe 's/\t+/\t/' | cut -f 2 | cut -f 1 -d ' ')
+echo "CURRENT_URL=($CURRENT_URL)"
+if echo "$CURRENT_URL" | grep "^ssh://"; then
+    echo "Currently ssh"
+    NEW_URL=$(echo "$CURRENT_URL" | perl -pe 's%ssh://git@%https://%')
+elif echo "$CURRENT_URL" | grep "^https://"; then
+    echo "Currently https"
+    NEW_URL=$(echo "$CURRENT_URL" | perl -pe 's%https://%ssh://git@'%)
+else
+    echo "Unknown URL type $CURRENT_URL"
+    exit 1
+fi
+
+git remote set-url "$WHAT" "$NEW_URL"

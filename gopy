@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# a script to switch which of python2 or python3 is used when "python"
+# is invoked.  Assumes $HOME/bin is in the path and overwrites any
+# "python" file in there.
+
+set -e
+set -x
+
+VER="$1"
+
+echo "VER=$VER"
+
+if test -z "$VER"; then
+  echo "Need a ver"
+  exit 1
+fi
+
+LINK_TARGET="/usr/bin/python$VER"
+if ! -e "$LINK_TARGET"; then
+    echo "$LINK_TARGET does not exist"
+fi
+
+# update the Python link
+pushd ~/bin
+rm -f python
+ln -s "$LINK_TARGET" python
+popd
+
+export MDEF=${MDEF:-$HOME/rc/ardupilot/modules/mavlink/message_definitions}
+
+echo "Using MDEF=$MDEF"
+
+# install MAVProxy
+pushd ~/rc/MAVProxy
+python setup.py build install --user --force
+popd
+
+# install pymavlink
+pushd ~/rc/pymavlink
+python setup.py build install --user --force
+popd
+

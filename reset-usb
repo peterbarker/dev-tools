@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# resets all USB ports on a Linux machine.  Must be run under sudo.
+
+#useful if flashing autopilots is causing your USB to go out to lunch
+
+set -e
+set -x
+
+#DRIVERS="xhci uhcd"
+DRIVERS="xhci"
+
+for DRIVER in $DRIVERS; do
+    DIR="/sys/bus/pci/drivers/${DRIVER}_hcd"
+    pushd $DIR
+    for FILE in 0000*; do
+    	echo "$FILE" >$DIR/unbind
+	sleep 1
+	echo "$FILE" >$DIR/bind
+    done
+    popd
+done

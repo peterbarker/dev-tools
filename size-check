@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# script to be run when your current working directory is the root of
+# an ArduPilot checkout.
+
+# invokes the size_compare_branches.py script (ArduPilot 4.4 and
+# higher only need apply).  This script compares your current checkout
+# with the merge-base with master and shows you the size differences
+# between the two branches.  Negative numbers mean you're saving bytes.
+
+# runs the script with a default set of parameters suitable for
+# copying into a PR title, attempting to strike the right balance
+# between time taken to build and coverage of different platforms.
+
+# while this is running you can monitor its progress with
+# "watch cat /tmp/some.csv"
+
+set -e
+set -x
+
+nice \
+time \
+./Tools/scripts/size_compare_branches.py \
+    --board=Durandal,MatekF405,KakuteH7-bdshot,f103-QiotekPeriph,f303-Universal,Hitec-Airspeed,Pixhawk1-1M-bdshot,revo-mini,skyviper-v2450,iomcu,HerePro \
+    --all-vehicles \
+    $*
+
+column -ts, /tmp/some.csv 

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# runs the arm objdump which is in the path with a variety of to-taste options
+
+time arm-none-eabi-objdump \
+  --source \
+  --disassemble-all \
+  --demangle \
+  -s \
+  $1

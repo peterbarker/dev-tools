@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# creates a branch for the current head commit in a "backup/"
+# namespace and with a date attached.
+
+# so, for example, date-branch with your currently checked out branch
+# is "pr/bob", after running date-branch you will have
+# "backup/pr/bob-202303262154
+
+set -e
+set -x
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+TIMESTAMP=$(date '+%Y%m%d%H%M%S')
+
+git branch "backup/$BRANCH-$TIMESTAMP"

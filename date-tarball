@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# creates a .tar for a directory with a date attached to the output filename.
+
+# so, for example, if you are in a directory with a subdirectory
+# 'my_precious", running "date-tarball my-precious" will give you a
+# file called (e.g.) "my-precious-202303262157.tar".
+
+# this is a fast way of taking q quick backup before doing something
+# ambitious in a directory.
+
+set -e
+set -x
+
+function usage()
+{
+	echo "date-tarball DIRNAME"
+	exit 1
+}
+
+
+test -z $1 && usage
+test -d $1 || usage
+
+DIRNAME=$1
+DIRNAME=`echo "$DIRNAME" | sed -e 's%/$%%'`
+
+TIMESTAMP=`date '+%Y%m%d%H%M'`
+TARNAME="$DIRNAME-$TIMESTAMP.tar"
+
+tar cf $TARNAME $DIRNAME
+ls -l $TARNAME
