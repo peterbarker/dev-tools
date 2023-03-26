@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e
+set -x
+
+BRANCH="$1"
+test -z "$BRANCH" && echo "Need a branch name" && exit 1
+
+if ! git rebase master $BRANCH; then
+# git rebase --abort
+ echo "*** FAILED to rebase $BRANCH"
+ exit 1
+fi
+
+git checkout master
+
+if git branch -d "$BRANCH"; then
+    echo "Deleted $BRANCH"
+    git push github :$BRANCH
+else
+    echo "Failed to delete $BRANCH"
+fi

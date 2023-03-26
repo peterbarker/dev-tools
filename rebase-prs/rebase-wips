@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e
+set -x
+
+. $HOME/rc/branches.conf
+
+for BRANCH in $WIPS; do
+    $HOME/bin/rebase-then-delete $BRANCH
+done

@@ -1,0 +1,87 @@
+#!/bin/sh
+
+set -e
+set -x
+
+BASEDIR="$HOME/rc"
+
+# also modify branches.conf!
+# whitelist directories you can start this in:
+if [ "$PWD" != "$HOME/rc/ardupilot" -a \
+	    "$PWD" != "$HOME/rc/pymavlink" -a \
+	    "$PWD" != "$HOME/rc/MAVProxy" -a \
+	    "$PWD" != "$HOME/rc/ardupilot_wiki" -a \
+	    "$PWD" != "$HOME/rc/ardupilot/modules/mavlink" -a \
+	    "$PWD" != "$HOME/rc/mavesp8266" \
+   ]; then
+    echo "Bad directory"
+    exit 1
+fi
+
+. $HOME/rc/branches.conf
+
+set +x
+ALL_GITHUB_REMOTE_BRANCHES_FILE=/tmp/all-remote-github-branches
+ALL_LOCAL_PR_BRANCHES=/tmp/all-local-branches
+# the following line duplicated below
+git branch -a | grep '^  remotes/github' |
+    grep -v 'remotes/github/harris/' |
+    grep -v 'remotes/github/pls/' >$ALL_GITHUB_REMOTE_BRANCHES_FILE
+git branch -a >$ALL_LOCAL_PR_BRANCHES
+
+for BRANCH in $PRS; do
+    $HOME/bin/rebase-then-delete $BRANCH
+done
+
+# git fetch --all --prune
+git fetch github --prune || true
+
+# this line duplicated from above
+git branch -a | grep '^  remotes/github' |
+    grep -v 'remotes/github/harris/' |
+    grep -v 'remotes/github/pls/' >$ALL_GITHUB_REMOTE_BRANCHES_FILE
+. $HOME/rc/branches.conf
+
+echo "***************** remote branch no local equivalent start"
+cat $ALL_GITHUB_REMOTE_BRANCHES_FILE | (
+    while read line; do
+	X=`echo "$line" | perl -pe 's%remotes/github/%%'`
+	if ! grep -q "[* ] $X" $ALL_LOCAL_PR_BRANCHES; then
+	    echo "Branch ($X) exists on github but not locally"
+	    git checkout github/"$X" >/dev/null 2>/dev/null
+	    if ! git rebase master >/dev/null 2>/dev/null; then
+		echo "  Does not rebase cleanly"
+		git rebase --abort
+	    else
+		if git branch --merged master | grep "HEAD detached from github/$X"; then
+		    echo "  Fully merged - deleting"
+		    git push github :"$X"
+		else
+		    echo "  Not fully merged"
+		fi
+	    fi
+	    git checkout master >/dev/null 2>/dev/null
+	fi
+    done
+)
+echo "***************** remote branch no local equivalents end"
+
+exit
+
+echo "***************** local pr branch no github equivalent start"
+ALL_ACTUAL_PRS_FILE="/tmp/actual-prs-file"
+all-actual-prs > $ALL_ACTUAL_PRS_FILE
+for BRANCH in $PRS; do
+    REMOTE="remotes/github/$BRANCH"
+    if ! grep -q "  $REMOTE" $ALL_GITHUB_REMOTE_BRANCHES_FILE; then
+	echo "PR ($BRANCH) does not exist on github"
+    elif ! grep -q "$BRANCH" "$ALL_ACTUAL_PRS_FILE"; then
+	echo "$BRANCH exists on github but doesn't seem to be a PR"
+    fi
+done
+echo "***************** local pr branch no github equivalent end"
+
+set -x
+    
+exit
+
