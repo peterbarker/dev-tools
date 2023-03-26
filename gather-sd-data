@@ -1,0 +1,232 @@
+#!/usr/bin/perl -w
+
+# associates SD card VFAT labels with vehicle names and moves
+# dataflash logs from those SD cards to be alongside the tlogs they
+# are associated with
+
+# destination directoy needs to be customised below
+
+use strict;
+use warnings;
+
+use POSIX;
+use File::Path;
+use File::Basename;
+
+my %mounts = (
+  "rover" => {
+    flight_data_name => "rover",
+  },
+  "pbarkerrvr" => {
+    flight_data_name => "rover",
+  },
+  "pbquaderang" => {
+    flight_data_name => "quaderang",
+  },
+  "fred" => {
+    flight_data_name => "rover",
+  },
+  "pbarker525" => {
+    flight_data_name => "peter-x525",
+  },
+  "peterx525" => {
+    flight_data_name => "peter-x525",
+  },
+  "firstar" => {
+    flight_data_name => "firstar",
+  },
+  "bixler" => {
+    flight_data_name => "bixler",
+  },
+  "hummer" => {
+    flight_data_name => "hummer",
+  },
+  "pbbixler" => {
+    flight_data_name => "bixler",
+  },
+  "bixler" => {
+    flight_data_name => "bixler",
+  },
+  "sphinx" => {
+    flight_data_name => "sphinx",
+  },
+  "planey" => {
+    flight_data_name => "planey",
+  },
+  "MINDPX" => {
+    flight_data_name => "planey",
+  },
+  "PLANEY" => {
+    flight_data_name => "planey",
+  },
+  "3132-6361" => {
+    flight_data_name => "planey",
+  },
+  "pbarker250" => {
+    flight_data_name => "peter-250",
+  },
+  "EFE6-B5B4" => {
+    flight_data_name => "splat",
+  },
+  "splat" => {
+    flight_data_name => "splat",
+  },
+  "ranger1600" => {
+    flight_data_name => "splat",
+  },
+  "3963-3833" => {
+    flight_data_name => "shurikin",
+  },
+  "tomcat" => {
+    flight_data_name => "tomcat",
+  },
+  'edu450' => {
+    flight_data_name=> "peter-edu450",
+  },
+  'cuavholyqd' => {
+    flight_data_name=> "cuav-quad",
+  },
+  '3ADE-8EF2' => {
+    flight_data_name=> "cuav-quad",
+  },
+  'ranger2400' => {
+    flight_data_name=> "ranger2400",
+  },
+  '6163-3431' => {
+    flight_data_name=> "ranger2400",
+  },
+  '9EEF-605B' => {
+    flight_data_name=> "ranger2400",
+  },
+  '1385-1A02' => {
+    flight_data_name=> "razorcrest",
+  },
+);
+
+my $flight_data_basedir = "/home/pbarker/rc/flight-data";
+
+package GatherSDData;
+
+sub new {
+  my ($class) = @_;
+  return bless {}, $class;
+}
+
+sub for_each_file_in_logdir {
+  my ($self, $info, $log_dirpath, $sub) = @_;
+
+  opendir(DIR, $log_dirpath) || die "Failed to open ($log_dirpath): $!";
+  print STDERR "Opened ($log_dirpath)\n";
+  while (my $entry = readdir(DIR)) {
+    print STDERR "Got ($entry)\n";
+    next if ($entry eq '.' or $entry eq '..');
+    my $filepath = "$log_dirpath/$entry";
+    if (not -f $filepath) {
+      die "Found something not a file: $filepath";
+    }
+    $sub->($info, $filepath);
+  }
+}
+
+sub remove_files {
+  my ($self, $dirpath) = @_;
+}
+
+sub copier {
+  my ($stuff, $filepath) = @_;
+
+  my $filename = File::Basename::basename($filepath);
+  if ($filename eq 'LASTLOG.TXT') {
+    print(qq%unlink "$filepath"\n%);
+    return;
+  }
+  my @bits = stat($filepath);
+  my $mtime = $bits[9];
+  # print STDERR "filepath=$filepath  (mtime=$mtime)\n";
+  my $dirname = &POSIX::strftime("%Y-%m-%d", localtime($mtime));
+  # print "date: $dirname\n";
+
+  if ($mtime < 1000000000) { # probably 1980....
+    die "Old file ($filepath)";
+  }
+
+  die unless exists $stuff->{flight_data_name};
+  my $flight_data_dir = "$flight_data_basedir/$stuff->{flight_data_name}/logs/$dirname";
+  if (! -e $flight_data_dir) {
+    File::Path::mkpath($flight_data_dir);
+  }
+  opendir(FDD, $flight_data_dir) or die "Failed to open ($flight_data_dir): $!";
+  my $relevant_flightdir = undef;
+  my $relevant_flightdir_mtime = undef;
+  ENTRY: while (defined (my $entry = readdir(FDD))) {
+    if ($entry =~ /^flight\d+$/) {
+      my $entry_path = "$flight_data_dir/$entry";
+      my $dir_mtime = (stat($entry_path))[9];
+      if ($dir_mtime > $mtime) {
+	# directory was created after our file, so not relevant
+	next ENTRY;
+      }
+      if (defined $relevant_flightdir_mtime and
+	    $mtime < $relevant_flightdir_mtime) {
+	# we already have a directory which is older than this one
+	next ENTRY;
+      }
+      $relevant_flightdir = $entry;
+      $relevant_flightdir_mtime = $mtime;
+    } elsif ($entry eq '.' or $entry eq '..') {
+      # do nothing
+      next ENTRY;
+    } else {
+      die "Unknown entry ($entry) in ($flight_data_dir)";
+    }
+  }
+
+  my $destination;
+  if (defined $relevant_flightdir) {
+    $destination = "$flight_data_dir/$relevant_flightdir/$filename";
+  } else {
+    $destination = "$flight_data_dir/$filename";
+  }
+  if (-e $destination) {
+    die "destination ($destination) already exists!";
+  }
+
+  print(qq%mv "$filepath" "$destination"\n%);
+  print(qq%~/rc/dronekit-la/dronekit-la $destination >$destination.dkla\n%);
+}
+
+sub copy_files {
+  my ($self, $stuff, $dirpath) = @_;
+
+  $self->for_each_file_in_logdir($stuff, $dirpath, \&copier);
+}
+
+sub run {
+  my $self = shift;
+
+  my $done_one = 0;
+  foreach my $key (sort(keys %mounts)) {
+    my $mount_path = "/media/pbarker/$key";
+    print STDERR "Looking for ($mount_path)\n";
+    if (-e $mount_path) {
+      print STDERR "$mount_path exists\n";
+      my $log_dirpath = "$mount_path/APM/LOGS";
+      if (-e $log_dirpath) {
+	print STDERR "$log_dirpath exists\n";
+	$self->copy_files($mounts{$key}, $log_dirpath);
+        $done_one = 1;
+      }
+    }
+  }
+  if (not $done_one) {
+    print STDERR "Did not find any\n";
+  }
+  #$self->copy_files({
+  #flight_data_name => "splrk",
+  #}, "/home/pbarker/new-splrk-logs");
+}
+
+package main;
+
+my $gatherer = GatherSDData->new();
+$gatherer->run();
