@@ -1,0 +1,97 @@
+#!/usr/bin/perl -ws
+
+# recurses through files and directories making regex substitution.
+
+# dangerous!  the name is not an accident, if you do this in the wrong
+# place at the wrong time you're likely to lose work.
+
+# you must supply "-o" to actually make the changes; without it the
+# file content is emitted to stdout
+
+# there are better tools to do this out there...
+
+use strict;
+use File::Find;
+use File::Path;
+use File::Copy;
+use Cwd;
+
+my $suffix = ".slbak";
+my $prefix = ".";
+
+$0 =~ s%.*/(.*)$%$1%;
+
+if (@ARGV != 2 and @ARGV !=3) {
+  die ("Usage: $0 fromstring tostring [path]");
+}
+
+my $startpath = ".";
+my $startfile = undef;
+
+if (@ARGV == 3) {
+  if (-d $ARGV[2]) {
+    $startpath = $ARGV[2];
+  } elsif (-T $ARGV[2]) {
+    $ARGV[2] =~ m%(.*)/(.*)%;
+    $startpath = $1;
+    $startfile = $2;
+  } else {
+    die ("Not a directory or text file");
+  }
+}
+
+my $fromregex = $ARGV[0];
+my $toregex = $ARGV[1];
+
+if ($main::o) {} # Command line arguments
+
+if (defined $startfile) # Only do the supplied file
+{
+  $_ = $startfile;
+  chdir $startpath;
+  wanted();
+} else {
+  print "Starting find in $startpath\n";
+  find(\&wanted, $startpath);
+}
+exit(0);
+
+sub wanted {
+  my $filename = $_;
+  local $\;
+  local $_ = $_;
+
+  if (-T) {    # We only replace in text files
+    if ($filename =~ /slbak$/) {
+      return;
+    }
+    print "$0: Processing file '" . cwd() . "/$filename'.\n";
+
+    if ($main::o) {
+      copy ($filename, "$prefix$filename$suffix") or die "Could not copy: $!";
+      open ("OUTFILE", ">$filename") or die "Could not open output file $filename: $!";
+      open INFILE, "$prefix$filename$suffix" or die "Could not open input file $prefix$_$suffix: $!";
+      select(OUTFILE);
+
+    } else {
+      open INFILE, "$filename" or die "Could not open input file $filename: $!";
+    }
+
+    my $outstring;
+    while (<INFILE>) {
+      if ($_ =~ m/$fromregex/) { # Find lines w/from string in them
+	$outstring = $` . eval ("sprintf \"$toregex\";") . $' ;
+      } else {
+	$outstring = $_;
+      }
+      print $outstring;
+      if (length($outstring) == 0) {
+	die "Damn";
+      }
+    }
+    close INFILE;
+    close OUTFILE;
+  }
+  select STDOUT;
+  print "$0: ---\n";
+}
