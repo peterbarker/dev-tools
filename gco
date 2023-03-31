@@ -52,7 +52,8 @@ echo "branch=$BRANCH"
 if git remote -v | grep "^$REMOTE\s"; then
     echo "Already have remote for $REMOTE"
 else
-    git remote add $REMOTE https://github.com/$REMOTE/$REPONAME
+    REPONAME="ardupilot"
+    git remote add "$REMOTE" https://github.com/$REMOTE/$REPONAME
 fi
 
 git fetch $REMOTE
