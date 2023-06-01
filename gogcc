@@ -53,12 +53,13 @@ class FoundVer(object):
         return "-".join([str(x) for x in [self.major, self.minor, self.year, self.quarter]])
 
 class SetGCCVersion(object):
-    def __init__(self, version):
+    def __init__(self, version, list_versions=False):
         # directory which holds all gcc directories:
         home = os.path.expanduser('~')
         self.gcc_basedir = os.path.join(home, "gcc")
 
         self.version = version
+        self.list_versions = list_versions
 
     def available_versions(self):
         '''return available versions from gcc_basedir.  Will be sorted from oldest to youngest'''
@@ -184,7 +185,14 @@ class SetGCCVersion(object):
         '''print message, perhaps prefixed with additional information'''
         print(f"gogcc: {message}")
 
+    def run_list_versions(self):
+        for ver in self.available_versions():
+            print(f"{ver.name} ({ver.major} {ver.minor} {ver.year} {ver.quarter})")
+
     def run(self):
+        if self.list_versions:
+            return self.run_list_versions()
+
         # link_destination is the name of the symlink file
         link_destination = os.path.join(self.gcc_basedir, "bin")
 
@@ -202,8 +210,9 @@ class SetGCCVersion(object):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('version')
+    parser.add_argument('version', nargs="?")
+    parser.add_argument("--list-versions", action='store_true', default=False, help="list all available versions")
     args = parser.parse_args()
 
-    setter = SetGCCVersion(args.version)
+    setter = SetGCCVersion(args.version, list_versions=args.list_versions)
     setter.run()
