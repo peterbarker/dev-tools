@@ -22,7 +22,7 @@ ionice \
 nice \
 time \
 ./Tools/scripts/size_compare_branches.py \
-    --board=Durandal,MatekF405,KakuteH7-bdshot,f103-QiotekPeriph,f303-Universal,Hitec-Airspeed,Pixhawk1-1M-bdshot,revo-mini,skyviper-v2450,iomcu,HereProAP \
+    --board=Durandal,MatekF405,KakuteH7-bdshot,f103-QiotekPeriph,f303-Universal,Hitec-Airspeed,Pixhawk1-1M-bdshot,revo-mini,skyviper-v2450,iomcu,HerePro \
     --all-vehicles \
     $*
 
