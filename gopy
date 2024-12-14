@@ -31,13 +31,14 @@ export MDEF=${MDEF:-$HOME/rc/ardupilot/modules/mavlink/message_definitions}
 
 echo "Using MDEF=$MDEF"
 
-# install MAVProxy
-pushd ~/rc/MAVProxy
-python setup.py build install --user --force
-popd
 
 # install pymavlink
 pushd ~/rc/pymavlink
-python setup.py build install --user --force
+python3 -m pip install .
+popd
+
+# install MAVProxy
+pushd ~/rc/MAVProxy
+python3 -m pip install --no-deps .
 popd
 
