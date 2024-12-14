@@ -20,6 +20,9 @@ my %mounts = (
   "pbarkerrvr" => {
     flight_data_name => "rover",
   },
+  "youch" => {
+    flight_data_name => "youch",
+  },
   "pbquaderang" => {
     flight_data_name => "quaderang",
   },
@@ -39,6 +42,9 @@ my %mounts = (
     flight_data_name => "bixler",
   },
   "hummer" => {
+    flight_data_name => "hummer",
+  },
+  "0021-0000" => {
     flight_data_name => "hummer",
   },
   "pbbixler" => {
@@ -74,6 +80,12 @@ my %mounts = (
   "ranger1600" => {
     flight_data_name => "splat",
   },
+  "crnch" => {
+    flight_data_name => "crnch",
+  },
+  "607E-AAD8" => {
+    flight_data_name => "youch",
+  },
   "3963-3833" => {
     flight_data_name => "shurikin",
   },
@@ -82,6 +94,9 @@ my %mounts = (
   },
   'edu450' => {
     flight_data_name=> "peter-edu450",
+  },
+  'EDU650' => {
+    flight_data_name=> "peter-edu650",
   },
   'cuavholyqd' => {
     flight_data_name=> "cuav-quad",
@@ -98,8 +113,20 @@ my %mounts = (
   '9EEF-605B' => {
     flight_data_name=> "ranger2400",
   },
+  '2CB4-CAE8' => {
+    flight_data_name=> "ranger2400",
+  },
   '1385-1A02' => {
     flight_data_name=> "razorcrest",
+  },
+  'razorcrest' => {
+    flight_data_name=> "razorcrest",
+  },
+  'dart' => {
+    flight_data_name=> "dart",
+  },
+  '01FB-CBC1' => {
+    flight_data_name=> "peter-edu650",
   },
 );
 
@@ -192,7 +219,11 @@ sub copier {
   }
 
   print(qq%mv "$filepath" "$destination"\n%);
-  print(qq%~/rc/dronekit-la/dronekit-la $destination >$destination.dkla\n%);
+  my $model = "plane";
+  if (exists $stuff->{model}) {
+    $model = $stuff->{model};
+  }
+  print(qq%~/rc/dronekit-la/dronekit-la -m $model $destination >$destination.dkla\n%);
 }
 
 sub copy_files {
